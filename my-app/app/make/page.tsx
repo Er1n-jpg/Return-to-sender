@@ -7,6 +7,8 @@ type block = {
   type: 'text' | 'image';
   x: number;
   y: number;
+  width?: number;
+  height?: number;
   content?: string;
   file?: File;
 }
@@ -31,6 +33,8 @@ function addText() {
       type: 'image',
       x: 100,
       y: 100,
+      width: 160,
+      height:160,
       content: url,
       file
     }])
@@ -69,6 +73,34 @@ function addText() {
     ))
   }
 
+  function resizeStart(e: React.MouseEvent, id:string){
+    e.stopPropagation();
+    const block = blocks.find(b => b.id === id);
+    if (!block) return;
+
+    const startX = e.clientX;
+    const startWidth = block.width ?? 160;
+    const startY = e.clientY;
+
+    function handleMouse(e:MouseEvent){
+        const newWidth  = Math.max(40, startWidth + (e.clientX - startX));
+        setBlocks(prev => prev.map(b =>
+            b.id === id ? { ...b, width: newWidth, height: newWidth } : b
+        ));
+    }
+
+    function stopResize(){
+    window.removeEventListener('mousemove', handleMouse);
+    window.removeEventListener('mouseup', stopResize);
+  }
+
+    window.removeEventListener('mousemove', handleMouse);
+    window.removeEventListener('mouseup', stopResize);
+    
+  }
+
+
+
   async function saveLetter() {
     const uploadedBoxes = await Promise.all(blocks.map(async (b) => {
       if (b.type === 'image' && b.file) {
@@ -89,9 +121,9 @@ function addText() {
   }
 
   return (
-    <div className="flex h-screen bg-[#C9BEA7] justify-center items-center">
+    <div className="flex h-screen bg-[#E5D8BB] justify-center items-center">
 
-      <div className = "h-screen bg-[url('/background1.png')] w-200"> </div>
+      <div className = ""> </div><div className="mt-5 mb-5 h-[calc(100vh-2.5rem)] bg-[url('/background1.png')] w-180 rounded shadow-2xl shadow-[#968663]"> </div>
 
       {blocks.map(b => (
         <div
@@ -104,26 +136,42 @@ function addText() {
               contentEditable
               suppressContentEditableWarning
               onBlur={(e) => updateTxt(b.id, e.currentTarget.textContent || '')}
-              className="bg-transparent text-black p-2 "
+              className="bg-transparent text-black p-2 max-w-xl"
             >
               {b.content}
             </div>
           ) : (
-            <img src={b.content} className="w-40" />
+    
+            <img src={b.content} className="w-full h-full object-cover" />
+
           )}
         </div>
       ))}
 
       <div className="navbar fixed bottom-4 left-4 flex gap-2 bg-black py-5 px-5 rounded-lg">
-        <button onClick={addText} className="bg-white text-black px-4 py-2 rounded mr-20">
+        <button onClick={addText} className="bg-white text-black px-4 py-2 rounded-lg mr-20">
           Add text
         </button>
-        <input type="file" accept="image/*" onChange={fileInput} />
+
+        <label htmlFor="fileUpload" className = "bg-white text-black py-4 px-5 rounded hover:cursor-pointer">
+            upload image
+        </label>
+        <input
+        id = "fileUpload"
+        type = "file"
+        accept = "image*/"
+        onChange = {fileInput}
+        className = "hidden"
+        ></input>
 
         <button onClick={saveLetter} className="bg-blue-600 text-white px-4 py-2 rounded hover:cursor-pointer ">
           Save
         </button>
       </div>
     </div>
-  );
+  )
+}
+
+function handleMouse(this: Window, ev: MouseEvent) {
+    throw new Error('Function not implemented.');
 }
