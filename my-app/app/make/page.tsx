@@ -23,15 +23,11 @@ export default function MakePage() {
       const target = e.target as HTMLElement;
       const editingText = target.isContentEditable;
 
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && !editingText) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && editingId !== selectedId) {
         setBlocks(prev => prev.filter(b => b.id !== selectedId));
         setSelectedId(null);
-      } else if ((e.key === 'Delete' )){
-
       }
-
     }
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
 
@@ -44,7 +40,9 @@ export default function MakePage() {
       type: 'text',
       x: 400,
       y: 400,
-      content: 'Add Text Here :)'
+      width: 160,
+      height: 60,
+      content: 'Add your text here!'
     }])
   }
 
@@ -171,7 +169,7 @@ export default function MakePage() {
           >
             {b.type === 'text' ? (
               <div
-                contentEditable
+                contentEditable={editingId === b.id}
                 suppressContentEditableWarning
                 onDoubleClick={(e) => {
                   e.stopPropagation();
@@ -187,7 +185,11 @@ export default function MakePage() {
                 {b.content}
               </div>
             ) : (
-              <div style={{ position: 'relative', width: b.width, height: b.height }}>
+              <div
+                onMouseDown={(e) => resizeStart(e, b.id)}
+                style={{ 
+                  position: 'relative', width: b.width, height: b.height
+                  }}>
                 <img src={b.content} className="w-full h-full object-cover rounded" />
                 <div
                   onMouseDown={(e) => resizeStart(e, b.id)}
@@ -199,6 +201,8 @@ export default function MakePage() {
                     height: 12,
                     cursor: 'nwse-resize',
                     background: 'white',
+                    border: '1px solid black',
+                    borderRadius: 2
                   }}
                 />
               </div>
