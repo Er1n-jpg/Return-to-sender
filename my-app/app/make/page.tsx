@@ -20,9 +20,6 @@ export default function MakePage() {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      const target = e.target as HTMLElement;
-      const editingText = target.isContentEditable;
-
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && editingId !== selectedId) {
         setBlocks(prev => prev.filter(b => b.id !== selectedId));
         setSelectedId(null);
@@ -30,9 +27,7 @@ export default function MakePage() {
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-
-  }, [selectedId]);
-
+  }, [selectedId, editingId]);
 
   function addText() {
     setBlocks(prev => [...prev, {
@@ -74,14 +69,15 @@ export default function MakePage() {
 
     function handleMouse(e: MouseEvent) {
       setBlocks(prev => prev.map(b =>
-        b.id === id ?
-          {
-            ...b, x: Math.max(0, Math.min(e.clientX - offsetX, 720 - (b.width ?? 100))),
-            y: Math.max(0, Math.min(e.clientY - offsetY, window.innerHeight - 40 - (b.height ?? 40)))
-          } : b
+        b.id === id
+          ? {
+              ...b,
+              x: Math.max(0, Math.min(e.clientX - offsetX, 720 - (b.width ?? 100))),
+              y: Math.max(0, Math.min(e.clientY - offsetY, window.innerHeight - 40 - (b.height ?? 40)))
+            }
+          : b
       ));
     }
-
 
     function stopDrag() {
       window.removeEventListener('mousemove', handleMouse)
@@ -103,15 +99,16 @@ export default function MakePage() {
     const block = blocks.find(b => b.id === id);
     if (!block) return;
 
+
     const startX = e.clientX;
-    const startWidth = block.width ?? 160;
     const startY = e.clientY;
+    const startWidth = block.width ?? 160;
+    const startHeigh = block.width ?? 160;
 
     function handleMouse(e: MouseEvent) {
-      const newWidth = Math.max(40, startWidth + (e.clientX - startX));
-      setBlocks(prev => prev.map(b =>
-        b.id === id ? { ...b, width: newWidth, height: newWidth } : b
-      ));
+      setBlocks(prev => prev.map(b => {
+        if (b.id !== id) return b
+      ))
     }
 
     function stopResize() {
@@ -121,12 +118,7 @@ export default function MakePage() {
 
     window.addEventListener('mousemove', handleMouse);
     window.addEventListener('mouseup', stopResize);
-
   }
-
-
-
-
 
   async function saveLetter() {
     const uploadedBoxes = await Promise.all(blocks.map(async (b) => {
@@ -149,16 +141,19 @@ export default function MakePage() {
 
   return (
     <div className="flex h-screen bg-[#E5D8BB] justify-center items-center">
-
-      <div className="mt-5 mb-5 h-[calc(100vh-2.5rem)] bg-[url('/background1.png')] w-180 rounded shadow-2xl shadow-[#968663] z-1 overflow-hidden relative" onClick={() => setSelectedId(null)}>
-
+      <div
+        className="mt-5 mb-5 h-[calc(100vh-2.5rem)] bg-[url('/background1.png')] w-180 rounded shadow-2xl shadow-[#968663] z-1 overflow-hidden relative"
+        onClick={() => setSelectedId(null)}
+      >
         {blocks.map(b => (
           <div
             key={b.id}
             onMouseDown={(e) => {
+              e.stopPropagation();
               setSelectedId(b.id);
               dragStart(e, b.id);
             }}
+            onClick={(e) => e.stopPropagation()}
             style={{
               position: 'absolute',
               left: b.x,
@@ -168,28 +163,39 @@ export default function MakePage() {
             }}
           >
             {b.type === 'text' ? (
-              <div
-                contentEditable={editingId === b.id}
-                suppressContentEditableWarning
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  setEditingId(b.id);
-                }}
-                onBlur={(e) => {
-                updateTxt(b.id, e.currentTarget.textContent || '');
-                setEditingId(null);
-                }}
-                style = {{ width: b.width, height: b.height}}
-                className="bg-transparent text-black p-2 break-words whitespace-normal overflow-auto"
-              >
-                {b.content}
+              <div style={{ position: 'relative', width: b.width, height: b.height }}>
+                <div
+                  contentEditable={editingId === b.id}
+                  suppressContentEditableWarning
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setEditingId(b.id);
+                  }}
+                  onBlur={(e) => {
+                    updateTxt(b.id, e.currentTarget.textContent || '');
+                    setEditingId(null);
+                  }}
+                  className="bg-transparent text-black p-2 w-full h-full break-words whitespace-normal overflow-auto"
+                >
+                  {b.content}
+                </div>
+                <div
+                  onMouseDown={(e) => resizeStart(e, b.id)}
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: 12,
+                    height: 12,
+                    cursor: 'nwse-resize',
+                    background: 'white',
+                    border: '1px solid black',
+                    borderRadius: 2
+                  }}
+                />
               </div>
             ) : (
-              <div
-                onMouseDown={(e) => resizeStart(e, b.id)}
-                style={{ 
-                  position: 'relative', width: b.width, height: b.height
-                  }}>
+              <div style={{ position: 'relative', width: b.width, height: b.height }}>
                 <img src={b.content} className="w-full h-full object-cover rounded" />
                 <div
                   onMouseDown={(e) => resizeStart(e, b.id)}
@@ -206,37 +212,40 @@ export default function MakePage() {
                   }}
                 />
               </div>
-
-
             )}
           </div>
         ))}
 
         <div className="navbar fixed bottom-4 left-4 flex gap-4 bg-black py-5 px-5 rounded-lg z-2">
-          <button onClick={addText} className="bg-white text-black px-4 py-2 rounded-lg hover:cursor-pointer hover:scale-110 transition duration-300 ">
+          <button
+            onClick={addText}
+            className="bg-white text-black px-4 py-2 rounded-lg hover:cursor-pointer hover:scale-110 transition duration-300"
+          >
             Add text
           </button>
 
-          <label htmlFor="fileUpload" className="bg-white text-black py-4 px-5 rounded-lg hover:scale-110 transition duration-300 hover:cursor-pointer">
+          <label
+            htmlFor="fileUpload"
+            className="bg-white text-black py-4 px-5 rounded-lg hover:scale-110 transition duration-300 hover:cursor-pointer"
+          >
             Upload an image
           </label>
           <input
             id="fileUpload"
             type="file"
-            accept="image*/"
+            accept="image/*"
             onChange={fileInput}
             className="hidden"
-          ></input>
+          />
 
-          <button onClick={saveLetter} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:scale-110 transition duration-300 hover:cursor-pointer ml-20">
+          <button
+            onClick={saveLetter}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:scale-110 transition duration-300 hover:cursor-pointer ml-20"
+          >
             Save
           </button>
         </div>
       </div>
     </div>
   )
-}
-
-function handleMouse(this: Window, ev: MouseEvent) {
-  throw new Error('Function not implemented.');
 }
