@@ -25,13 +25,13 @@ export default function SearchPage() {
     getSession();
   },[])
 
-
   return (
     <div className="h-screen flex flex-col bg-[url('/beach.png')]">
-      <div className="absolute inset-0 bg-cyan-100/50">
+      <div className="absolute inset-0 bg-cyan-100/50 justify-end items-end flex  ">
       <Link href="./make">
-        <button className = "bg-black hover: cursor-pointer">
-          Make a card! 1</button>
+      <div className = "px-10 py-5 rounded-lg hover:cursor-pointer bg-[#3b82f6] text-white mr-10 mb-10 hover:scale-110 duration-300 text-xl">
+          Make a card!
+        </div>
       </Link>
     </div>  
     </div>

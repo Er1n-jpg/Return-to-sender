@@ -17,6 +17,9 @@ export default function MakePage() {
   const [blocks, setBlocks] = useState<block[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
+
+  
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -99,16 +102,24 @@ export default function MakePage() {
     const block = blocks.find(b => b.id === id);
     if (!block) return;
 
-
     const startX = e.clientX;
     const startY = e.clientY;
     const startWidth = block.width ?? 160;
-    const startHeigh = block.width ?? 160;
+    const startHeight = block.height ?? 160;
 
-    function handleMouse(e: MouseEvent) {
+    function handleMouse(event: MouseEvent) {
       setBlocks(prev => prev.map(b => {
-        if (b.id !== id) return b
-      ))
+        if (b.id !== id) return b;
+
+        const nextWidth = Math.max(40, startWidth + (event.clientX - startX));
+        const nextHeight = Math.max(40, startHeight + (event.clientY - startY));
+
+        return {
+          ...b,
+          width: nextWidth,
+          height: nextHeight,
+        };
+      }));
     }
 
     function stopResize() {
@@ -136,7 +147,12 @@ export default function MakePage() {
       .insert({ title: 'My letters', blocks: uploadedBoxes })
       .select();
 
-    console.log(data, error);
+    if (error){
+      setToast('Failed to save letter, try again')
+    } else {
+      setToast('Returned to Sender!')
+    }
+
   }
 
   return (
@@ -249,3 +265,4 @@ export default function MakePage() {
     </div>
   )
 }
+
