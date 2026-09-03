@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 
 import { supabase } from '@/lib/supabase'
 import type { Session } from '@supabase/supabase-js'
@@ -29,7 +30,7 @@ export default function SearchPage() {
     <div className="h-screen flex flex-col bg-[url('/beach.png')]">
       <div className="absolute inset-0 bg-cyan-100/50 justify-end items-end flex  ">
         <Link href="./make">
-          <div className="px-10 py-5 rounded-lg hover:cursor-pointer bg-[#3b82f6] text-white mr-10 mb-10 hover:scale-110 duration-300 text-xl">
+          <div className="px-10 py-5 rounded-lg hover:cursor-pointer bg-[#6192e2] text-white mr-10 mb-10 hover:scale-110 duration-300 text-xl">
             Make a card!
           </div>
         </Link>

@@ -1,5 +1,5 @@
 "use client";
-export const dynamic = 'force-dynamic';
+
 
 import { supabase } from '@/lib/supabase'
 import { useState, useEffect } from 'react'
@@ -177,7 +177,7 @@ export default function MakePage() {
               left: b.x,
               top: b.y,
               cursor: 'grab',
-              outline: selectedId === b.id ? '2px solid #3b82f6' : 'none'
+              outline: selectedId === b.id ? '2px solid #6192e2' : 'none'
             }}
           >
             {b.type === 'text' ? (
