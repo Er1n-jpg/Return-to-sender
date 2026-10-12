@@ -1,8 +1,8 @@
 "use client";
 
-
 import { supabase } from '@/lib/supabase'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 type block = {
   id: string;
@@ -16,15 +16,22 @@ type block = {
 }
 
 export default function MakePage() {
+  const router = useRouter();
   const [blocks, setBlocks] = useState<block[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
 
-  
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [toName, setToName] = useState('');
+  const [fromName, setFromName] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && editingId !== selectedId) {
         setBlocks(prev => prev.filter(b => b.id !== selectedId));
         setSelectedId(null);
@@ -33,6 +40,13 @@ export default function MakePage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, editingId]);
+
+  
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   function addText() {
     setBlocks(prev => [...prev, {
@@ -112,14 +126,10 @@ export default function MakePage() {
     function handleMouse(event: MouseEvent) {
       setBlocks(prev => prev.map(b => {
         if (b.id !== id) return b;
-
-        const nextWidth = Math.max(40, startWidth + (event.clientX - startX));
-        const nextHeight = Math.max(40, startHeight + (event.clientY - startY));
-
         return {
           ...b,
-          width: nextWidth,
-          height: nextHeight,
+          width: Math.max(40, startWidth + (event.clientX - startX)),
+          height: Math.max(40, startHeight + (event.clientY - startY)),
         };
       }));
     }
@@ -133,34 +143,57 @@ export default function MakePage() {
     window.addEventListener('mouseup', stopResize);
   }
 
-  async function saveLetter() {
-    const uploadedBoxes = await Promise.all(blocks.map(async (b) => {
-      if (b.type === 'image' && b.file) {
-        const path = `${Date.now()}-${b.file.name}`;
-        await supabase.storage.from('letter-images').upload(path, b.file);
-        const { data: urlData } = supabase.storage.from('letter-images').getPublicUrl(path);
-        return { ...b, content: urlData.publicUrl, file: undefined };
-      }
-      return b;
-    }));
+  function openSaveModal() {
+    setSelectedId(null);
+    setEditingId(null);
+    setShowSaveModal(true);
+  }
 
-    const { data, error } = await supabase
-      .from('letters')
-      .insert({ title: 'My letters', blocks: uploadedBoxes })
-      .select();
+  async function saveLetter(e: React.FormEvent) {
+    e.preventDefault();
+    if (!toName.trim() || !fromName.trim()) return;
+    setSaving(true);
 
-    if (error){
-      setToast('Failed to save letter, try again')
-    } else {
-      setToast('Returned to Sender!')
+    try {
+      const uploadedBlocks = await Promise.all(blocks.map(async (b) => {
+        if (b.type === 'image' && b.file) {
+          const ext = b.file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+          const path = `${crypto.randomUUID()}.${ext}`;
+          const { error: uploadError } = await supabase.storage.from('letter-images').upload(path, b.file);
+          if (uploadError) throw uploadError;
+          const { data: urlData } = supabase.storage.from('letter-images').getPublicUrl(path);
+          const { file, ...rest } = b;
+          return { ...rest, content: urlData.publicUrl };
+        }
+        return b;
+      }));
+
+      const { error } = await supabase
+        .from('Cards')
+        .insert({
+          title: `To ${toName.trim()}`,
+          to_name: toName.trim(),
+          from_name: fromName.trim(),
+          blocks: uploadedBlocks,
+        });
+
+      if (error) throw error;
+
+      setShowSaveModal(false);
+      router.push('/');
+    } catch (err) {
+      console.error('Save failed:', err);
+      const message = (err as { message?: string })?.message ?? 'unknown error';
+      setToast(`Failed to save: ${message}`);
+    } finally {
+      setSaving(false);
     }
-
   }
 
   return (
     <div className="flex h-screen bg-[#E5D8BB] justify-center items-center">
       <div
-        className="mt-5 mb-5 h-[calc(100vh-2.5rem)] bg-[url('/background1.png')] w-180 rounded shadow-2xl shadow-[#968663] z-1 overflow-hidden relative"
+        className="mt-5 mb-5 h-[calc(100vh-2.5rem)] bg-[url('/background1.png')] w-180 shadow-[#968663] z-1 overflow-hidden relative"
         onClick={() => setSelectedId(null)}
       >
         {blocks.map(b => (
@@ -197,38 +230,12 @@ export default function MakePage() {
                 >
                   {b.content}
                 </div>
-                <div
-                  onMouseDown={(e) => resizeStart(e, b.id)}
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    width: 12,
-                    height: 12,
-                    cursor: 'nwse-resize',
-                    background: 'white',
-                    border: '1px solid black',
-                    borderRadius: 2
-                  }}
-                />
+                <div onMouseDown={(e) => resizeStart(e, b.id)} style={resizeHandleStyle} />
               </div>
             ) : (
               <div style={{ position: 'relative', width: b.width, height: b.height }}>
                 <img src={b.content} className="w-full h-full object-cover rounded" />
-                <div
-                  onMouseDown={(e) => resizeStart(e, b.id)}
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    width: 12,
-                    height: 12,
-                    cursor: 'nwse-resize',
-                    background: 'white',
-                    border: '1px solid black',
-                    borderRadius: 2
-                  }}
-                />
+                <div onMouseDown={(e) => resizeStart(e, b.id)} style={resizeHandleStyle} />
               </div>
             )}
           </div>
@@ -257,14 +264,87 @@ export default function MakePage() {
           />
 
           <button
-            onClick={saveLetter}
+            onClick={openSaveModal}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:scale-110 transition duration-300 hover:cursor-pointer ml-20"
           >
             Save
           </button>
         </div>
       </div>
+
+      {showSaveModal && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onClick={() => !saving && setShowSaveModal(false)}
+        >
+          <form
+            onSubmit={saveLetter}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-[#FBF6EA] text-black rounded-lg shadow-2xl p-6 w-80 flex flex-col gap-4"
+          >
+            <h2 className="text-xl font-semibold">Address your letter</h2>
+
+            <label className="flex flex-col gap-1 text-sm">
+              To
+              <input
+                autoFocus
+                value={toName}
+                onChange={(e) => setToName(e.target.value)}
+                placeholder="Who is it for?"
+                className="border border-[#C9B98F] rounded px-3 py-2 bg-white"
+                required
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              From
+              <input
+                value={fromName}
+                onChange={(e) => setFromName(e.target.value)}
+                placeholder="Who is it from?"
+                className="border border-[#C9B98F] rounded px-3 py-2 bg-white"
+                required
+              />
+            </label>
+
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => setShowSaveModal(false)}
+                disabled={saving}
+                className="px-4 py-2 rounded-lg hover:cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:cursor-pointer disabled:opacity-60"
+              >
+                {saving ? 'Sending…' : 'Send letter'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded-lg shadow-lg z-50">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }
 
+const resizeHandleStyle: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 0,
+  right: 0,
+  width: 12,
+  height: 12,
+  cursor: 'nwse-resize',
+  background: 'white',
+  border: '1px solid black',
+  borderRadius: 2,
+};
