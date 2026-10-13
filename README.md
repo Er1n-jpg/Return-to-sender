@@ -11,12 +11,15 @@ When you first click on the return to sender app, it directs you to page with on
 
 <img width="1520" height="872" alt="image" src="https://github.com/user-attachments/assets/b0e3c265-d131-472b-9c34-98bb94687c8a" />
 
-After you click the start button you will go to another page with the same background (this time its more blue), this is supposed to be the page that displays all the cards but that will come in a future development :D. 
-<img width="1510" height="864" alt="image" src="https://github.com/user-attachments/assets/4fb9c451-9a3c-4145-8331-587f2a8012ed" />
+After you click the start button you will go to another page, this time without the same background but a grid layout with a few pre-written cards (yay!). Everytime you save a card, it will show up here!!
+![Cards!](image.png)
 
-and then the final page and where most of my progress fully is is the last page where you can upload your own images, add text and resize the text to your liking for your birthday card. You can also save it to the existing database
+and then the final page and where most of my progress fully is is the last page where you can upload your own images, add text and resize the text to your liking for your birthday card. 
+
+When you want to save the birthday card, you just need to press the save button, a pop up will appear asking you for a from and a to sender and bam you have your birthday card!
 
 <img width="1511" height="881" alt="image" src="https://github.com/user-attachments/assets/7518e7f6-dc5f-4a4d-98ba-b4732a97c3ff" />
+
 
 # tech stack!
 For this project I mostly worked with react with the help of supabase for all the sql and back end stuff :) 

@@ -282,7 +282,7 @@ export default function MakePage() {
             onClick={(e) => e.stopPropagation()}
             className="bg-[#FBF6EA] text-black rounded-lg shadow-2xl p-6 w-80 flex flex-col gap-4"
           >
-            <h2 className="text-xl font-semibold">Address your letter</h2>
+            <h2 className="text-xl font-semibold">One more step :D</h2>
 
             <label className="flex flex-col gap-1 text-sm">
               To
@@ -290,7 +290,7 @@ export default function MakePage() {
                 autoFocus
                 value={toName}
                 onChange={(e) => setToName(e.target.value)}
-                placeholder="Who is it for?"
+                placeholder="Insert text here (or not)"
                 className="border border-[#C9B98F] rounded px-3 py-2 bg-white"
                 required
               />
@@ -301,7 +301,7 @@ export default function MakePage() {
               <input
                 value={fromName}
                 onChange={(e) => setFromName(e.target.value)}
-                placeholder="Who is it from?"
+                placeholder="Insert text here (or not)"
                 className="border border-[#C9B98F] rounded px-3 py-2 bg-white"
                 required
               />
